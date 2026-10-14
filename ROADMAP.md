@@ -325,8 +325,8 @@ An agent does not need to remember what another agent did. It reads the repo. Ev
 
 | Phase | Name | Delivers | Depends on | Owner | Status |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Foundation | Next.js app, project brief, shared types, CI | Nothing | | Not started |
-| 2 | Route engine | Best stop order from a distance table | Phase 1 | | Not started |
+| 1 | Foundation | Next.js app, project brief, shared types, CI | Nothing | | Done |
+| 2 | Route engine | Best stop order from a distance table | Phase 1 | Osifowora | Done |
 | 3 | Maps data | Address search and real road distances | Phase 1 | | Not started |
 | 4 | Database and API | Saved runs, stops and the optimize endpoint | Phases 2 and 3 | | Not started |
 | 5 | Dispatcher website | Planner page with map, list and Google Maps handoff | Phase 4 | | Not started |
@@ -413,21 +413,21 @@ The UI limits runs to 12 stops, so every real run gets the exact answer. The heu
 
 ### Tasks
 
-- [ ] `src/lib/engine/cost.ts`: `routeCost(order, distances, returnToStart)`.
-- [ ] `src/lib/engine/validate.ts`: reject empty, non-square, over 51 points, negative, NaN or Infinity.
-- [ ] `src/lib/engine/heldKarp.ts`: bitmask dynamic programming with typed arrays and parent pointers. Supports open routes and round trips. Handles asymmetric matrices.
-- [ ] `src/lib/engine/heuristic.ts`: nearest neighbour from point 0, then 2-opt that never moves point 0. Recomputes cost with `routeCost` because roads are not symmetric. Stops at 2,000 iterations.
-- [ ] `src/lib/engine/index.ts`: `solveRoute(distances, options)` picks the algorithm and re-exports `routeCost`.
-- [ ] Tests with a seeded random generator:
-  - [ ] Held-Karp equals brute force on 200 random matrices of 3 to 8 points (symmetric, asymmetric, open, round trip).
-  - [ ] Order always starts at 0 and contains every index once.
-  - [ ] A hand-made 5-point case with a known answer.
-  - [ ] Every validation error.
-  - [ ] 13 points finish in under 200 ms.
-  - [ ] Heuristic on 25 points is never worse than its nearest-neighbour start.
-- [ ] `scripts/benchmark-engine.ts` (`npm run bench:engine`): 100 random sets of 8 Lagos stops, report average, best and worst saving. Save to `docs/engine-benchmark.md`.
-- [ ] `docs/ALGORITHM.md`: the Travelling Salesman Problem, why brute force fails, Held-Karp step by step with a worked example, its cost, why we switch to the heuristic, how 2-opt works.
-- [ ] Update `HANDOFF.md`.
+- [x] `src/lib/engine/cost.ts`: `routeCost(order, distances, returnToStart)`.
+- [x] `src/lib/engine/validate.ts`: reject empty, non-square, over 51 points, negative, NaN or Infinity.
+- [x] `src/lib/engine/heldKarp.ts`: bitmask dynamic programming with typed arrays and parent pointers. Supports open routes and round trips. Handles asymmetric matrices.
+- [x] `src/lib/engine/heuristic.ts`: nearest neighbour from point 0, then 2-opt that never moves point 0. Recomputes cost with `routeCost` because roads are not symmetric. Stops at 2,000 iterations.
+- [x] `src/lib/engine/index.ts`: `solveRoute(distances, options)` picks the algorithm and re-exports `routeCost`.
+- [x] Tests with a seeded random generator:
+  - [x] Held-Karp equals brute force on 200 random matrices of 3 to 8 points (symmetric, asymmetric, open, round trip).
+  - [x] Order always starts at 0 and contains every index once.
+  - [x] A hand-made 5-point case with a known answer.
+  - [x] Every validation error.
+  - [x] 13 points finish in under 200 ms.
+  - [x] Heuristic on 25 points is never worse than its nearest-neighbour start.
+- [x] `scripts/benchmark-engine.ts` (`npm run bench:engine`): 100 random sets of 8 Lagos stops, report average, best and worst saving. Save to `docs/engine-benchmark.md`.
+- [x] `docs/ALGORITHM.md`: the Travelling Salesman Problem, why brute force fails, Held-Karp step by step with a worked example, its cost, why we switch to the heuristic, how 2-opt works.
+- [x] Update `HANDOFF.md`.
 
 ### Deliverables
 
@@ -435,8 +435,8 @@ The UI limits runs to 12 stops, so every real run gets the exact answer. The heu
 
 ### Done when
 
-- [ ] All tests pass, including the brute-force comparison and timing test.
-- [ ] Benchmark output is saved.
+- [x] All tests pass, including the brute-force comparison and timing test.
+- [x] Benchmark output is saved.
 
 ### What the owner must be able to explain
 
