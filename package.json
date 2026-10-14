@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "bench:engine": "npx tsx scripts/benchmark-engine.ts"
   },
   "dependencies": {
     "next": "15.1.7",
