@@ -130,3 +130,21 @@ On average, Stopora reduces travel distance by **~36% to 43%** compared with raw
    ```bash
    npm run build
    ```
+
+## Phase 3: Maps data (done)
+
+**Files:** `src/lib/geo/` (haversine, provider, mockProvider, orsProvider, index)
+
+**Two providers, one switch.** `GEO_PROVIDER=ors` uses OpenRouteService (needs `ORS_API_KEY`). Anything else uses the mock: 15 fixed Lagos places, straight-line distance times 1.3, and 20 km/h average speed. CI and teammates without a key use the mock.
+
+**Usage (server-side only, never import from a client component):**
+```ts
+import { geocode, getMatrix } from "@/lib/geo";
+
+const places = await geocode("Yaba");           // GeocodeResult[]
+const matrix = await getMatrix([start, ...stops]); // DistanceMatrix
+```
+
+**Phase 4 warning:** in the points list passed to `getMatrix`, index 0 must be the start point. The engine assumes row 0 is the start. Distances are in metres, durations in seconds.
+
+**Notes:** results are cached in memory for 10 minutes. ORS expects [longitude, latitude], and our code converts from `LatLng` in one place (`orsProvider.ts`). Check the real API by hand with `npm run try:geo`.
