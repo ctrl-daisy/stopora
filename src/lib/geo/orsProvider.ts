@@ -37,6 +37,10 @@ async function orsFetch(url: string, init: RequestInit): Promise<Response> {
     clearTimeout(timer);
   }
 }
+type OrsFeature = {
+  properties: { label: string };
+  geometry: { coordinates: [number, number] };
+};
 
 export const orsProvider: GeoProvider = {
   async geocode(query: string): Promise<GeocodeResult[]> {
@@ -54,7 +58,7 @@ export const orsProvider: GeoProvider = {
       headers: { Authorization: key },
     });
     const data = await res.json();
-    return (data.features ?? []).map((f: any) => ({
+    return (data.features ?? []).map((f: OrsFeature) => ({
       label: f.properties.label,
       // ORS gives [longitude, latitude]
       lat: f.geometry.coordinates[1],

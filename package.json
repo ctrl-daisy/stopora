@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit",
-    "bench:engine": "npx tsx scripts/benchmark-engine.ts"
+    "bench:engine": "npx tsx scripts/benchmark-engine.ts",
+    "try:geo": "tsx --env-file=.env.local scripts/try-geo.ts"
   },
   "dependencies": {
     "next": "15.1.7",
@@ -28,6 +29,7 @@
     "eslint-config-next": "15.1.7",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.4"
   }
