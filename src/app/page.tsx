@@ -9,7 +9,10 @@ export default function HomePage() {
           <span>🇳🇬</span> Built for Lagos Roads
         </div>
         <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-gray-900 dark:text-white leading-tight">
-          Smartest delivery routes for Lagos dispatchers.
+          Stopora
+          <span className="block text-xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 mt-2">
+            Smartest delivery routes for Lagos dispatchers.
+          </span>
         </h1>
         <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-xl mx-auto leading-relaxed">
           Stopora calculates the optimal visiting sequence for your delivery stops in seconds, eliminating backtracking and cutting fuel costs across Lagos road networks with instant turn-by-turn navigation handoff.
