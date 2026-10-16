@@ -120,6 +120,7 @@ export function AddressSearch({
         <input
           ref={inputRef}
           id={id}
+          role="combobox"
           type="text"
           value={query}
           disabled={disabled}
@@ -187,6 +188,9 @@ export function AddressSearch({
                     id={`${id}-item-${idx}`}
                     role="option"
                     aria-selected={isSelected}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                    }}
                     onClick={() => handleSelect(result)}
                     className={`min-h-[44px] px-4 py-3 cursor-pointer flex flex-col justify-center transition-colors text-left ${
                       isSelected
