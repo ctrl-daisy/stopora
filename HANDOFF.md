@@ -1,7 +1,7 @@
 # Stopora Handoff Document
 
 ## Current phase
-**Phase 4 done: Neon verified; environment repaired; GEO_PROVIDER=mock**
+**Phase 5 done: Dispatcher website complete, tested, and verified on mobile**
 
 ---
 
@@ -315,6 +315,62 @@ Commands and results:
 
 The connection retained both `sslmode=require` and `channel_binding=require`;
 no compatibility workaround or database reset was needed. No shared types,
-engine, or geo modules were changed. This commit includes only the environment
-template, ignore rules, Prisma files, and handoff; the other Phase 4 implementation
-files remain uncommitted per the requested commit scope. Nothing was pushed.
+engine, or geo modules were changed.
+
+---
+
+## Phase 5: Dispatcher website (done)
+
+The mobile-first dispatcher web application has been fully implemented, tested, and verified using a 375×812 phone viewport against the live seeded database.
+
+### Pages Delivered
+1. **`/` (Landing Page)**:
+   - High-contrast hero section with title **Stopora**, headline, and concise Lagos logistics explanation.
+   - 3-step "How It Works" guide: *1. Add delivery stops*, *2. Tap optimize*, *3. Follow the numbers*.
+   - Prominent **Plan a route** CTA leading to `/plan` and direct link to recent runs.
+2. **`/plan` (Start a Run)**:
+   - Input for run name.
+   - Large vehicle toggle buttons: **Motorbike** (0.03 L/km), **Car** (0.09 L/km), and **Van** (0.12 L/km).
+   - "Return to start" toggle for round trips vs. open routes.
+   - Integrated `AddressSearch` component to locate and select the starting hub.
+   - On submission, calls `POST /api/runs` and redirects to `/runs/[id]`.
+3. **`/runs` (Recent Runs)**:
+   - Lists the 20 most recent delivery runs with vehicle type, start hub, date/time, status badge (`draft`, `optimized`, `completed`), and distance savings when optimized.
+   - Empty state guidance with CTA to plan a new route.
+4. **`/runs/[id]` (Main Planner Screen)**:
+   - Server Component reading `FUEL_PRICE_NGN_PER_LITRE` from the server environment and passing it as a prop.
+   - **Responsive layout**: On mobile (360px+), the map occupies ~45% screen height on top (`h-[45vh] min-h-[280px]`), followed by search, optimization button, summary metrics, and stop list. On desktop, switches to a side-by-side split grid.
+   - **Map integration (`PlannerMap.tsx`)**: Loaded via `next/dynamic` with `ssr: false`. Features OpenStreetMap tiles, Lagos central focus (6.5244, 3.3792), distinct start hub marker (**S**), numbered stop badges (1..N), polyline route path, bounds fitting, and interactive "Drop a pin" mode with custom label prompt.
+   - **Stop Management**: Real-time counter `X of 12 stops` (blocks adding past 12). Adding or deleting stops seamlessly resets the route to draft.
+   - **Route Optimization**: Large "Optimize route" button (disabled with < 2 stops) showing loading spinner while executing.
+   - **Summary Cards (`SummaryCards.tsx`)**: High-contrast cards reporting total distance (km), estimated time (hours/minutes), fuel usage (litres), percentage saved, and estimated Naira saved banner (`₦4,839` on the 9-stop demo at ₦1355/L).
+   - **Ordered Stops & Navigation (`StopList.tsx`)**:
+     - Shows visit number, stop label, and address.
+     - **Navigate** button launching Google Maps directions for that single leg (`https://www.google.com/maps/dir/?api=1&origin=LAT,LNG&destination=LAT,LNG&travelmode=driving`) in a new tab.
+     - **Delivered** checkbox calling `PATCH /api/runs/[id]/stops/[stopId]` instantly with optimistic UI update.
+     - **Full Route Navigation**: Multi-stop directions URL with waypoints (`|`), automatically split into Part 1 and Part 2 when intermediate waypoints exceed 9.
+     - **Run completed banner** appears when all stops are checked as delivered.
+
+### Components Delivered
+- `src/components/PlannerClient.tsx`: Client coordinator handling state, geocoding, pin drops, and optimistic updates.
+- `src/components/PlannerMap.tsx`: Dynamic Leaflet map with custom SVG/div icons and click event listeners.
+- `src/components/AddressSearch.tsx`: 400ms debounced geocoding search input with accessible combobox ARIA roles, loading spinner, and keyboard navigation.
+- `src/components/SummaryCards.tsx`: High-contrast metric cards with distance, duration, fuel, and Naira formatting.
+- `src/components/StopList.tsx`: Ordered delivery list with single-leg navigation, delivery toggles, and multi-leg full route links.
+- `src/components/Toast.tsx`: Non-blocking, dismissible alert toasts for all API errors and notifications.
+
+### Navigation Link Helpers
+- `src/lib/mapsLinks.ts`: Tested Google Maps single-leg and batched waypoint link builder supporting automated splitting past 9 waypoints.
+
+### Screenshots
+Screenshots of the verified live seeded planner flow are stored in `docs/screenshots/`:
+- Before optimization (initial 8 stops + added 9th stop): `docs/screenshots/planner-before-optimize.png`
+- After optimization (numbered markers, polyline, summary cards, and Naira savings): `docs/screenshots/planner-after-optimize.png`
+
+### Notes & Polish Recommendations for Phase 6 (Ship It)
+1. **Lighthouse Audit**: Verify Lighthouse accessibility, best practices, and performance on mobile devices.
+2. **Postgres in CI**: Add a Postgres service container in GitHub Actions or mock database tests to run integration suites in CI.
+3. **Rate Limiting**: Protect `/api/geocode` and `/api/runs/[id]/optimize` against abuse (e.g. 30 requests/min per IP) returning HTTP 429.
+4. **Offline Resilience**: Cache recently viewed runs in localStorage or IndexedDB for riders temporarily losing signal in Lagos traffic.
+5. **Real Road Results Report**: Execute `scripts/results.ts` (`npm run results`) with 20 real Lagos runs to generate `docs/RESULTS.md`.
+6. **Technical Defense Guide**: Prepare `docs/DEFENSE.md` answering architecture, algorithm, and geo choices.
