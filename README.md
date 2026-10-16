@@ -47,7 +47,7 @@ Stopora is a web application designed for delivery riders and dispatchers in Lag
 | :---: | :--- | :--- | :---: |
 | **1** | **Foundation** | Next.js 15 app scaffold, TypeScript strict mode, Tailwind CSS, shared contracts (`src/types/index.ts`), Vitest, Playwright, and GitHub Actions CI. | **Done** |
 | **2** | **Route engine** | Core route optimization algorithms (exact Held-Karp dynamic programming and 2-opt heuristic). | **Done** |
-| **3** | **Maps data** | OpenRouteService geocoding and road distance matrices, in-memory cache, and mock provider. | Up next |
-| **4** | **Database and API** | Prisma ORM with PostgreSQL (Neon), run/stop persistence, and API endpoints. | Not started |
-| **5** | **Dispatcher website** | Interactive Leaflet map, address search, route summary metrics, and Google Maps handoff. | Not started |
-| **6** | **Integration, testing and deployment** | End-to-end test suite, full system audit, live Vercel deployment, and defense guide. | Not started |
+| **3** | **Maps data** | OpenRouteService geocoding and road distance matrices, in-memory cache, and mock provider. | **Done** |
+| **4** | **Database and API** | Prisma ORM with PostgreSQL (Neon), run/stop persistence, and API endpoints. | **Done** |
+| **5** | **Dispatcher website** | Interactive Leaflet map, address search, route summary metrics, and Google Maps handoff. | **Done** |
+| **6** | **Integration, testing and deployment** | End-to-end test suite, full system audit, live Vercel deployment, and defense guide. | Up next |
