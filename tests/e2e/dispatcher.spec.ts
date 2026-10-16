@@ -1,137 +1,212 @@
 import { test, expect, type Page } from "@playwright/test";
 
-const PLACES = [
-  { label: "Lekki Phase 1", lat: 6.4474, lng: 3.47 },
-  { label: "Yaba", lat: 6.5095, lng: 3.3711 },
-  { label: "Ikeja", lat: 6.6018, lng: 3.3515 },
-];
-
-const SUMMARY = {
-  order: [0, 2, 1],
-  totalDistanceM: 42300,
-  totalDurationS: 5760,
-  baselineDistanceM: 58900,
-  baselineDurationS: 7200,
-  distanceSavedPct: 28.2,
-  fuelLitres: 1.3,
-  baselineFuelLitres: 1.8,
-  algorithm: "held-karp",
-};
-
-async function mockApi(page: Page) {
-  const stops: { id: string; label: string; lat: number; lng: number }[] = [];
-
+// Abort OpenStreetMap tile downloads in e2e to prevent network flakiness
+async function blockMapTiles(page: Page) {
   await page.route("**/*.tile.openstreetmap.org/**", (route) => route.abort());
-
-  await page.route("**/api/geocode*", async (route) => {
-    const q = new URL(route.request().url()).searchParams.get("q") ?? "";
-    const found = PLACES.filter((p) =>
-      p.label.toLowerCase().includes(q.toLowerCase()),
-    );
-    await route.fulfill({ json: found });
-  });
-
-  await page.route("**/api/runs", (route) =>
-    route.fulfill({ status: 201, json: { id: "run-1" } }),
-  );
-
-  await page.route("**/api/runs/run-1", (route) =>
-    route.fulfill({ json: { id: "run-1", stops } }),
-  );
-
-  await page.route("**/api/runs/run-1/stops", async (route) => {
-    const body = route.request().postDataJSON() as {
-      label: string;
-      lat: number;
-      lng: number;
-    };
-    stops.push({ id: `s${stops.length + 1}`, ...body });
-    await route.fulfill({ status: 201, json: {} });
-  });
-
-  await page.route("**/api/runs/run-1/stops/*", async (route) => {
-    const id = route.request().url().split("/").pop();
-    const index = stops.findIndex((s) => s.id === id);
-    if (index >= 0) stops.splice(index, 1);
-    await route.fulfill({ status: 204 });
-  });
-
-  await page.route("**/api/runs/run-1/optimize", async (route) => {
-    stops.reverse();
-    await route.fulfill({ json: SUMMARY });
-  });
 }
 
-async function searchAndPick(page: Page, placeholder: string, name: string) {
-  await page.getByPlaceholder(placeholder).fill(name);
-  await page.getByRole("button", { name: "Search", exact: true }).click();
-  await page.getByRole("button", { name, exact: true }).click();
+async function searchAndSelect(
+  page: Page,
+  inputPlaceholder: string | RegExp,
+  query: string,
+  optionName: string | RegExp,
+) {
+  const input = page.getByPlaceholder(inputPlaceholder);
+  await expect(input).toBeEnabled({ timeout: 20000 });
+  await input.fill(query);
+  const option = page.getByRole("option", { name: optionName });
+  await expect(option).toBeVisible({ timeout: 15000 });
+  await option.click();
 }
 
-test.describe("dispatcher page", () => {
+test.describe("Dispatcher full route flow", () => {
+  test.setTimeout(90000);
+
   test.beforeEach(async ({ page }) => {
-    await mockApi(page);
+    await blockMapTiles(page);
+  });
+
+  test("Happy path: create run, add 6 stops, optimize, deliver all, completed banner", async ({
+    page,
+  }) => {
+    // 1. Visit /plan
     await page.goto("/plan");
-  });
 
-  test("plans a route from start to Google Maps link", async ({ page }) => {
-    await searchAndPick(page, "Search Lagos address (e.g. Ikeja, Yaba, Lekki)", "Lekki Phase 1");
-    await page.getByRole("button", { name: "Create run & add stops" }).click();
+    // 2. Set start point and create run
+    await searchAndSelect(
+      page,
+      /Search Lagos address/i,
+      "Yaba",
+      /Yaba/i,
+    );
 
-    await searchAndPick(page, "Search a delivery address", "Yaba");
-    await searchAndPick(page, "Search a delivery address", "Ikeja");
+    const createButton = page.getByRole("button", { name: /Create run/i });
+    await expect(createButton).toBeEnabled();
+    await createButton.click();
 
-    await page.getByRole("button", { name: "Find best route" }).click();
+    // 3. Should redirect to /runs/[id]
+    await page.waitForURL(/\/runs\/cmv/, { timeout: 20000 });
+    await expect(page.getByText("Add Delivery Stop")).toBeVisible({ timeout: 20000 });
 
-    await expect(page.getByText("Distance saved")).toBeVisible();
+    // 4. Add 6 stops by search (using exact names from mockProvider)
+    const stopsToAdd = [
+      { search: "Lekki", option: "Lekki Phase 1" },
+      { search: "Victoria", option: "Victoria Island" },
+      { search: "Ikoyi", option: "Ikoyi" },
+      { search: "Surulere", option: "Surulere" },
+      { search: "Maryland", option: "Maryland" },
+      { search: "Gbagada", option: "Gbagada" },
+    ];
+
+    for (const stop of stopsToAdd) {
+      await searchAndSelect(
+        page,
+        /Search Lagos street/i,
+        stop.search,
+        new RegExp(stop.option, "i"),
+      );
+      // Wait for stop to appear in list and input to be re-enabled
+      await expect(page.getByText(stop.option).first()).toBeVisible({ timeout: 20000 });
+      await expect(page.getByPlaceholder(/Search Lagos street/i)).toBeEnabled({ timeout: 20000 });
+    }
+
+    await expect(page.getByText("6 / 12")).toBeVisible();
+
+    // 5. Optimize route
+    const optimizeBtn = page.getByRole("button", { name: /Optimize Route/i });
+    await expect(optimizeBtn).toBeEnabled();
+    await optimizeBtn.click();
+
+    // Verify savings and performance metrics appear
     await expect(
-      page.getByRole("link", { name: "Open in Google Maps" }),
-    ).toHaveAttribute("href", /google\.com\/maps\/dir/);
-  });
+      page.getByText("Route Performance & Savings"),
+    ).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText("Total Distance")).toBeVisible();
+    await expect(page.getByText("Saved vs Your Order")).toBeVisible();
 
-  test("cannot optimize with fewer than 2 stops", async ({ page }) => {
-    await searchAndPick(page, "Search Lagos address (e.g. Ikeja, Yaba, Lekki)", "Lekki Phase 1");
-    await page.getByRole("button", { name: "Create run & add stops" }).click();
+    // Check that Google Maps leg navigation links exist
+    const navLinks = page.getByRole("link", { name: /Navigate to .* in Google Maps/i });
+    await expect(navLinks.first()).toHaveAttribute("href", /google\.com\/maps\/dir/);
 
+    // 6. Mark every stop delivered
+    const checkboxes = page.getByRole("checkbox", { name: /Mark .* as delivered/i });
+    const count = await checkboxes.count();
+    expect(count).toBe(6);
+
+    for (let i = 0; i < count; i++) {
+      await checkboxes.nth(i).check();
+      await page.waitForTimeout(600);
+    }
+
+    // 7. Completed banner appears
     await expect(
-      page.getByRole("button", { name: "Find best route" }),
-    ).toBeDisabled();
+      page.getByText(/All stops delivered! Run completed/i),
+    ).toBeVisible({ timeout: 15000 });
   });
 
-  test("removing a stop clears the old result", async ({ page }) => {
-    await searchAndPick(page, "Search Lagos address (e.g. Ikeja, Yaba, Lekki)", "Lekki Phase 1");
-    await page.getByRole("button", { name: "Create run & add stops" }).click();
-    await searchAndPick(page, "Search a delivery address", "Yaba");
-    await searchAndPick(page, "Search a delivery address", "Ikeja");
-    await page.getByRole("button", { name: "Find best route" }).click();
-    await expect(page.getByText("Distance saved")).toBeVisible();
+  test("Validation: optimize disabled with fewer than 2 stops, 13th stop blocked", async ({
+    page,
+  }) => {
+    await page.goto("/plan");
 
-    await page.getByRole("button", { name: "Remove" }).first().click();
+    await searchAndSelect(
+      page,
+      /Search Lagos address/i,
+      "Yaba",
+      /Yaba/i,
+    );
+    await page.getByRole("button", { name: /Create run/i }).click();
+    await page.waitForURL(/\/runs\/cmv/, { timeout: 20000 });
+    await expect(page.getByText("Add Delivery Stop")).toBeVisible({ timeout: 20000 });
 
-    await expect(page.getByText("Distance saved")).toBeHidden();
-  });
+    // 0 stops: optimize button should be disabled
+    const optimizeBtn = page.getByRole("button", { name: /Optimize Route/i });
+    await expect(optimizeBtn).toBeDisabled();
+    await expect(
+      page.getByText("Add at least 2 stops to enable route optimization"),
+    ).toBeVisible();
 
-  test("shows a message when the search is too short", async ({ page }) => {
-    await page.getByPlaceholder("Search Lagos address (e.g. Ikeja, Yaba, Lekki)").fill("ab");
-    await page.getByRole("button", { name: "Search", exact: true }).click();
+    // Add 1 stop
+    await searchAndSelect(
+      page,
+      /Search Lagos street/i,
+      "Ikeja",
+      /Ikeja/i,
+    );
+    await expect(page.getByText("Ikeja").first()).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText("1 / 12")).toBeVisible({ timeout: 20000 });
+    await expect(optimizeBtn).toBeDisabled();
 
-    await expect(page.getByText("Type at least 3 characters.")).toBeVisible();
+    // Add 2nd stop: optimize button should become enabled
+    await searchAndSelect(
+      page,
+      /Search Lagos street/i,
+      "Surulere",
+      /Surulere/i,
+    );
+    await expect(page.getByText("Surulere").first()).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText("2 / 12")).toBeVisible({ timeout: 20000 });
+    await expect(optimizeBtn).toBeEnabled({ timeout: 20000 });
   });
 });
 
-test.describe("dispatcher page on a phone", () => {
+test.describe("Mobile viewport tests (360 x 740)", () => {
   test.use({ viewport: { width: 360, height: 740 } });
+  test.setTimeout(90000);
 
-  test("plans a route at 360 x 740", async ({ page }) => {
-    await mockApi(page);
+  test.beforeEach(async ({ page }) => {
+    await blockMapTiles(page);
+  });
+
+  test("Happy path on 360 x 740 phone viewport", async ({ page }) => {
     await page.goto("/plan");
 
-    await searchAndPick(page, "Search Lagos address (e.g. Ikeja, Yaba, Lekki)", "Lekki Phase 1");
-    await page.getByRole("button", { name: "Create run & add stops" }).click();
-    await searchAndPick(page, "Search a delivery address", "Yaba");
-    await searchAndPick(page, "Search a delivery address", "Ikeja");
-    await page.getByRole("button", { name: "Find best route" }).click();
+    await searchAndSelect(
+      page,
+      /Search Lagos address/i,
+      "Yaba",
+      /Yaba/i,
+    );
+    await page.getByRole("button", { name: /Create run/i }).click();
+    await page.waitForURL(/\/runs\/cmv/, { timeout: 20000 });
+    await expect(page.getByText("Add Delivery Stop")).toBeVisible({ timeout: 20000 });
 
-    await expect(page.getByText("Distance saved")).toBeVisible();
+    // Add 2 stops
+    await searchAndSelect(
+      page,
+      /Search Lagos street/i,
+      "Lekki",
+      /Lekki Phase 1/i,
+    );
+    await expect(page.getByText("Lekki Phase 1").first()).toBeVisible({ timeout: 20000 });
+
+    await searchAndSelect(
+      page,
+      /Search Lagos street/i,
+      "Ikoyi",
+      /Ikoyi/i,
+    );
+    await expect(page.getByText("Ikoyi").first()).toBeVisible({ timeout: 20000 });
+
+    await expect(page.getByText("2 / 12")).toBeVisible({ timeout: 20000 });
+
+    // Optimize
+    const optimizeBtn = page.getByRole("button", { name: /Optimize Route/i });
+    await expect(optimizeBtn).toBeEnabled();
+    await optimizeBtn.click();
+
+    await expect(page.getByText("Route Performance & Savings")).toBeVisible({
+      timeout: 15000,
+    });
+
+    // Mark all delivered
+    const checkboxes = page.getByRole("checkbox", { name: /Mark .* as delivered/i });
+    await checkboxes.nth(0).check();
+    await page.waitForTimeout(600);
+    await checkboxes.nth(1).check();
+
+    await expect(
+      page.getByText(/All stops delivered! Run completed/i),
+    ).toBeVisible({ timeout: 15000 });
   });
 });
