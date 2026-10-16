@@ -16,9 +16,23 @@ export async function handle(work: () => Promise<Response>): Promise<Response> {
       const coordinates = error.issues.some(i => ["lat", "lng"].includes(String(i.path.at(-1))));
       return Response.json({ error: { code: coordinates ? "OUTSIDE_NIGERIA" : "VALIDATION_ERROR", message: error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; ") } }, { status: coordinates ? 422 : 400 });
     }
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") return Response.json({ error: { code: "NOT_FOUND", message: "Run or stop not found." } }, { status: 404 });
-    if (error instanceof Prisma.PrismaClientInitializationError) return Response.json({ error: { code: "DATABASE_UNAVAILABLE", message: "Database is unreachable. Please try again later." } }, { status: 503 });
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2025") return Response.json({ error: { code: "NOT_FOUND", message: "Run or stop not found." } }, { status: 404 });
+      if (["P1001", "P1002", "P1008", "P1017"].includes(error.code)) {
+        return Response.json({ error: { code: "DATABASE_UNAVAILABLE", message: "Database server is unreachable. Please check connection." } }, { status: 503 });
+      }
+      if (error.code === "P2024") {
+        return Response.json({ error: { code: "DATABASE_UNAVAILABLE", message: "Database connection pool timed out. Please try again." } }, { status: 503 });
+      }
+      if (error.code === "P2028") {
+        return Response.json({ error: { code: "DATABASE_TIMEOUT", message: "Database transaction timed out. Please try again." } }, { status: 504 });
+      }
+    }
+    if (error instanceof Prisma.PrismaClientInitializationError) return Response.json({ error: { code: "DATABASE_UNAVAILABLE", message: "Database is unreachable. Please check DATABASE_URL." } }, { status: 503 });
     if (error instanceof Error) {
+      if (error.message.includes("Environment variable not found: DATABASE_URL")) {
+        return Response.json({ error: { code: "DATABASE_UNAVAILABLE", message: "DATABASE_URL is not set in environment." } }, { status: 503 });
+      }
       if (error.message.includes("cannot be reached by road")) {
         return Response.json({ error: { code: "UNREACHABLE_STOP", message: error.message } }, { status: 422 });
       }
@@ -29,7 +43,12 @@ export async function handle(work: () => Promise<Response>): Promise<Response> {
         return Response.json({ error: { code: "GEO_PROVIDER_ERROR", message: error.message } }, { status: 502 });
       }
     }
-    console.error("API request failed", error instanceof Error ? error.name : "UnknownError");
-    return Response.json({ error: { code: "INTERNAL_ERROR", message: "Unable to complete the request." } }, { status: 500 });
+    console.error("API request failed:", error instanceof Error ? error.message : error);
+    return Response.json({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Unable to complete the request."
+      }
+    }, { status: 500 });
   }
 }
