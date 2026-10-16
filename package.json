@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "bench:engine": "npx tsx scripts/benchmark-engine.ts",
     "try:geo": "tsx --env-file=.env.local scripts/try-geo.ts",
+    "results": "tsx --env-file-if-exists=.env.local scripts/results.ts",
     "postinstall": "prisma generate",
     "db:migrate": "node --env-file-if-exists=.env.local node_modules/prisma/build/index.js migrate deploy",
     "db:studio": "node --env-file-if-exists=.env.local node_modules/prisma/build/index.js studio",
