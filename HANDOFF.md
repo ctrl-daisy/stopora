@@ -1,7 +1,8 @@
 # Stopora Handoff Document
 
-## Current phase
-**Phase 5 done: Dispatcher website complete, tested, and verified on mobile**
+## Current status
+**Project 100% Complete & Shipped! (Phases 1 to 6 all Done)**
+Live URL: **[https://stopora.vercel.app](https://stopora.vercel.app)**
 
 ---
 
@@ -367,10 +368,36 @@ Screenshots of the verified live seeded planner flow are stored in `docs/screens
 - Before optimization (initial 8 stops + added 9th stop): `docs/screenshots/planner-before-optimize.png`
 - After optimization (numbered markers, polyline, summary cards, and Naira savings): `docs/screenshots/planner-after-optimize.png`
 
-### Notes & Polish Recommendations for Phase 6 (Ship It)
-1. **Lighthouse Audit**: Verify Lighthouse accessibility, best practices, and performance on mobile devices.
-2. **Postgres in CI**: Add a Postgres service container in GitHub Actions or mock database tests to run integration suites in CI.
-3. **Rate Limiting**: Protect `/api/geocode` and `/api/runs/[id]/optimize` against abuse (e.g. 30 requests/min per IP) returning HTTP 429.
-4. **Offline Resilience**: Cache recently viewed runs in localStorage or IndexedDB for riders temporarily losing signal in Lagos traffic.
-5. **Real Road Results Report**: Execute `scripts/results.ts` (`npm run results`) with 20 real Lagos runs to generate `docs/RESULTS.md`.
-6. **Technical Defense Guide**: Prepare `docs/DEFENSE.md` answering architecture, algorithm, and geo choices.
+### Phase 6: Integration, testing and deployment (done)
+
+The full system has been audited, protected, benchmarked, and prepared for production:
+
+1. **Audit & Edge Case Hardening (`docs/AUDIT.md`)**:
+   - Resolved Neon DB transaction timeout (P2028) by setting explicit 20,000ms timeouts on `addStop`, `removeStop`, and `setDelivered`.
+   - Mapped road network unreachable errors to 422 `UNREACHABLE_STOP`.
+   - Mapped ORS rate limit errors to 429 `RATE_LIMITED`.
+   - Mapped ORS credential errors to 502 `GEO_PROVIDER_ERROR`.
+   - Mapped database connection failure to 503 `DATABASE_UNAVAILABLE`.
+   - Verified 0/1 stops, 12 stops limit, duplicate coordinates, non-existent runs, and slow networks.
+
+2. **Security & Rate Limiting (`src/lib/rateLimit.ts` & `next.config.ts`)**:
+   - Implemented sliding-window in-memory rate limiting (30 requests/min/IP) on `/api/geocode` and `/api/runs/[id]/optimize`.
+   - Added security headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Strict-Transport-Security`).
+   - Verified that `DATABASE_URL` and `ORS_API_KEY` never reach the client bundle (confirmed via `.next/static/` inspection).
+
+3. **End-to-End Testing (`tests/e2e/dispatcher.spec.ts`)**:
+   - Playwright happy path test: create run, search & add 6 stops, optimize, verify numbered markers and savings cards, deliver all 6, verify completed banner.
+   - Validation test: optimize button disabled with < 2 stops, 13th stop blocked.
+   - Mobile test: 360 x 740 viewport run.
+   - Added GitHub Actions CI job with a real PostgreSQL 16 service container and automated migrations.
+
+4. **Empirical Defense Results (`scripts/results.ts` -> `docs/RESULTS.md`)**:
+   - Evaluated 20 realistic Lagos delivery runs (6 to 10 stops each).
+   - Found **39.1% average distance savings**, saving **69.9 km** and **₦6,635** in fuel per run.
+
+5. **Team Defense Guide (`docs/DEFENSE.md`)**:
+   - Authored complete panel defense document with 2-sentence problem definition, architecture diagram, phase-by-phase breakdown with top 3 hardest panel questions and answers, benchmark numbers, and honest future steps.
+
+6. **Production Deployment (Vercel)**:
+   - Configured with Neon PostgreSQL database connection (`DATABASE_URL`), `GEO_PROVIDER=ors`, `FUEL_PRICE_NGN_PER_LITRE=1355`.
+   - Live URL: **[https://stopora.vercel.app](https://stopora.vercel.app)**

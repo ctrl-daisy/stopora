@@ -112,8 +112,8 @@ async function runBenchmark() {
       console.log(
         `Run ${runIndex.toString().padStart(2)}: ${stopCount} stops (${vehicle}, ${returnToStart ? "round-trip" : "open"}) -> Saved ${kmSaved.toFixed(1)} km (${pctSaved.toFixed(1)}%), ${fuelSavedLitres.toFixed(2)} L`,
       );
-    } catch (err: any) {
-      console.error(`Error calculating run ${runIndex}:`, err.message);
+    } catch (err: unknown) {
+      console.error(`Error calculating run ${runIndex}:`, err instanceof Error ? err.message : String(err));
     }
   }
 
