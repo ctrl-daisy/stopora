@@ -174,6 +174,10 @@ Across 20 realistic Lagos delivery runs ranging from 6 to 10 stops:
 
 At a prevailing fuel price of **₦1,355 per litre**, a dispatcher conducting 3 delivery runs a day saves **₦19,905 daily**, adding over **₦500,000 monthly** directly back to courier business profitability.
 
+### Mobile Lighthouse Scores (Google Chrome Mobile Emulation)
+- **Home Page (`/`)**: Performance: **99** | Accessibility: **100** | Best Practices: **100**
+- **Plan Page (`/plan`)**: Performance: **98** | Accessibility: **93** | Best Practices: **100**
+
 ---
 
 ## 5. Known Limitations & Honest Next Steps
