@@ -38,7 +38,7 @@ export function addStop(id: string, input: AddStopInput) {
     if (run.stops.length >= 12) throw new ApiError(400, "STOP_LIMIT", "A run can contain at most 12 stops. Remove a stop before adding another.");
     await invalidate(tx, id);
     return tx.stop.create({ data: { ...input, runId: id, enteredIndex: run.stops.length } });
-  });
+  }, { timeout: 20000, maxWait: 10000 });
 }
 export function removeStop(id: string, stopId: string) {
   return db.$transaction(async tx => {
@@ -48,7 +48,7 @@ export function removeStop(id: string, stopId: string) {
     const remaining = run.stops.filter(stop => stop.id !== stopId);
     for (const [enteredIndex, stop] of remaining.entries()) await tx.stop.update({ where: { id: stop.id }, data: { enteredIndex } });
     await invalidate(tx, id);
-  });
+  }, { timeout: 20000, maxWait: 10000 });
 }
 export function setDelivered(id: string, stopId: string, delivered: boolean) {
   return db.$transaction(async tx => {
@@ -58,7 +58,7 @@ export function setDelivered(id: string, stopId: string, delivered: boolean) {
     const allDelivered = run.stops.every(s => s.id === stopId ? delivered : s.delivered);
     await tx.run.update({ where: { id }, data: { status: allDelivered ? "completed" : run.summary ? "optimized" : "draft" } });
     return stop;
-  });
+  }, { timeout: 20000, maxWait: 10000 });
 }
 export function optimizeRun(id: string) {
   return db.$transaction(async tx => {
