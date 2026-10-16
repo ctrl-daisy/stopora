@@ -20,37 +20,28 @@ Stopora is a mobile-first web application designed for delivery riders and dispa
    ```
 
 3. **Configure environment variables:**
-   Copy `.env.example` to both `.env.local` and `.env`:
    ```bash
    cp .env.example .env.local
-   cp .env.example .env
    ```
+   *(Or on Windows PowerShell: `Copy-Item .env.example .env.local`. If you skip this, `npm run dev` automatically creates it for you with the shared team Neon database and mock provider).*
 
-4. **Add your PostgreSQL database URL:**
-   In `.env.local` and `.env`, set:
-   ```env
-   DATABASE_URL="postgresql://user:password@host/database?sslmode=require"
-   GEO_PROVIDER="mock"
-   FUEL_PRICE_NGN_PER_LITRE="1355"
-   ```
-
-5. **Run database migrations:**
+4. **Run database migrations (if needed):**
    ```bash
    npx prisma migrate deploy
    ```
 
-6. **Seed the demo run:**
+5. **Seed the demo run (optional):**
    ```bash
    npm run db:seed
    ```
 
-7. **Start the local development server:**
+6. **Start the local development server:**
    ```bash
    npm run dev
    ```
    Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-8. **Run tests:**
+7. **Run tests:**
    ```bash
    npm test
    npm run test:e2e
